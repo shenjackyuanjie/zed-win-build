@@ -3,7 +3,8 @@ Write-Host "当前位置：$current_pos"
 
 Write-Host "Zed build script"
 Write-Host "by shenjackyuanjie"
-Write-Host "V 1.0.1"
+$_version_ = "1.1.0"
+Write-Host "Version: $_version_"
 
 $zed_repo_path = "V:\githubs\zed"
 $work_path = "D:\path-scripts"
@@ -21,9 +22,10 @@ Write-Host "更新 Zed 仓库完成"
 
 # 准备构建信息
 $date = Get-Date -Format "yyyy-MM-dd-HH_mm_ss"
-Write-Host "更新时间：$date"
+Write-Host "更新时间: $date"
 $commit = git log -1 --pretty=format:"%h"
-Write-Host "最新提交：$commit"
+$full_commit = git log -1 --pretty=format:"%H"
+Write-Host "最新提交: $commit($full_commit)"
 $zip_name = "zed-$date-$commit-ziped.zip"
 $zip_namex = "zed-$date-$commit-ziped.zipx"
 Write-Host "ZIP 名称：$zip_name"
@@ -31,10 +33,12 @@ Write-Host "ZIPX 名称：$zip_namex"
 # 上面这堆信息构建完会再输出一遍
 
 # build!
-Write-Host "开始构建"
 $start_time = Get-Date
-cargo build --release
-Write-Host "构建完成, 耗时：$((Get-Date) - $start_time)"
+if (-not ($args -contains "-skip")) {
+    Write-Host "开始构建"
+    cargo build --release
+    Write-Host "构建完成, 耗时：$((Get-Date) - $start_time)"
+}
 
 # 把最新构建 copy 到 D:\path-scripts
 Copy-Item -Path ".\target\release\Zed.exe" -Destination "$work_path\Zed.exe" -Force
@@ -61,19 +65,25 @@ bz.exe t .\zed-zip\$zip_namex
 $zip_file = Get-Item ".\zed-zip\$zip_name"
 $zipx_file = Get-Item ".\zed-zip\$zip_namex"
 
+Write-Host "tag: 0.$_version_.$commit"
+# https://github.com/zed-industries/zed/commit/f6fa6600bc0293707457f27f5849c3ce73bd985f
+Write-Host "commit url: https://github.com/zed-industries/zed/commit/$full_commit"
 Write-Host "打包信息:"
+Write-Host "  - 脚本版本号: $_version_"
 Write-Host "  - ZIP 文件: $zip_file"
 Write-Host "  - ZIPX 文件: $zipx_file"
 Write-Host "  - commit id: $commit"
 Write-Host "  - 构建时间：$date"
 Write-Host "  - 构建耗时：$((Get-Date) - $start_time)"
 
+Write-Host "``````"
 # 计算 hash
 Write-Host "blake3sum:"
 b3sum.exe .\zed-zip\$zip_name
 b3sum.exe .\zed-zip\$zip_namex
 
 ($zip_file, $zipx_file) | Get-FileHash -Algorithm SHA256
+Write-Host "``````"
 Write-Host "ZIP 压缩完成"
 
 # 返回原位置
