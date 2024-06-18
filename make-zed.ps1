@@ -8,7 +8,12 @@ function main {
     Write-Host "更新结果：$git_result"
     if ($git_result -eq "Already up to date.") {
         Write-Host "Zed 仓库已经是最新的了"
-        return
+        # 如果命令行参数包含 -f 则继续构建
+        if ($args -contains "-f") {
+            Write-Host "强制构建"
+        } else {
+            return
+        }
     }
     Write-Host "更新 Zed 仓库完成"
 
