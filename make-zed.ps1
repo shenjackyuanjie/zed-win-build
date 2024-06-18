@@ -1,10 +1,16 @@
 $current_pos = Get-Location
 Write-Host "当前位置：$current_pos"
 
-Set-Location V:\githubs\zed
+Write-Host "Zed build script"
+Write-Host "by shenjackyuanjie"
+Write-Host "V 1.0.0"
+
+$zed_repo_path = "V:\githubs\zed"
+$work_path = "D:\path-scripts"
+
+Set-Location $zed_repo_path
 Write-Host "更新 Zed 仓库"
-$git_result = git pull
-Write-Host $git_result
+git pull | Tee-Object -Variable git_result
 # 如果命令行参数包含 -f 则继续构建
 if ($git_result -eq "Already up to date." -and -not ($args -contains "-f")) {
     Write-Host "Zed 仓库已经是最新的了"
@@ -31,10 +37,10 @@ cargo build --release
 Write-Host "构建完成, 耗时：$((Get-Date) - $start_time)"
 
 # 把最新构建 copy 到 D:\path-scripts
-Copy-Item -Path ".\target\release\Zed.exe" -Destination "D:\path-scripts\Zed.exe" -Force
+Copy-Item -Path ".\target\release\Zed.exe" -Destination "$work_path\Zed.exe" -Force
 
 # 到 D:\path-scripts 目录
-Set-Location "D:\path-scripts"
+Set-Location $work_path
 if (Test-Path $zip_name) {
     Write-Host "删除旧 ZIP"
     Remove-Item -Path $zip_name -Force
