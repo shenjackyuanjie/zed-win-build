@@ -1,9 +1,12 @@
 $current_pos = Get-Location
 Write-Host "当前位置：$current_pos"
 
+# 依赖: https://github.com/jborean93/PSToml
+Import-Module PSToml
+
 Write-Host "Zed build script"
 Write-Host "by shenjackyuanjie"
-$_version_ = "1.1.0"
+$_version_ = "1.2.0"
 Write-Host "Version: $_version_"
 
 $zed_repo_path = "V:\githubs\zed"
@@ -25,9 +28,12 @@ $date = Get-Date -Format "yyyy-MM-dd-HH_mm_ss"
 Write-Host "更新时间: $date"
 $commit = git log -1 --pretty=format:"%h"
 $full_commit = git log -1 --pretty=format:"%H"
+$cargo_info = Get-Content ".\crates\zed\Cargo.toml" | ConvertFrom-Toml
+$zed_version = $cargo_info.package.version
+Write-Host "Zed 版本: $zed_version"
 Write-Host "最新提交: $commit($full_commit)"
-$zip_name = "zed-$date-$commit-ziped.zip"
-$zip_namex = "zed-$date-$commit-ziped.zipx"
+$zip_name = "zed-$zed_version-$commit.zip"
+$zip_namex = "zed-$zed_version-$commit.zipx"
 Write-Host "ZIP 名称：$zip_name"
 Write-Host "ZIPX 名称：$zip_namex"
 # 上面这堆信息构建完会再输出一遍
@@ -65,14 +71,15 @@ bz.exe t .\zed-zip\$zip_namex
 $zip_file = Get-Item ".\zed-zip\$zip_name"
 $zipx_file = Get-Item ".\zed-zip\$zip_namex"
 
-Write-Host "tag: 0.$_version_.$commit"
+Write-Host "tag: $zed_version.$commit.$_version_"
 # https://github.com/zed-industries/zed/commit/f6fa6600bc0293707457f27f5849c3ce73bd985f
 Write-Host "commit url: https://github.com/zed-industries/zed/commit/$full_commit"
 Write-Host "打包信息:"
 Write-Host "  - 脚本版本号: $_version_"
+Write-Host "  - commit id: $commit"
+Write-Host "  - Zed 版本号: $zed_version"
 Write-Host "  - ZIP 文件: $zip_file"
 Write-Host "  - ZIPX 文件: $zipx_file"
-Write-Host "  - commit id: $commit"
 Write-Host "  - 构建时间：$date"
 Write-Host "  - 构建耗时：$((Get-Date) - $start_time)"
 
