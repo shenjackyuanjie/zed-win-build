@@ -71,7 +71,7 @@ bz.exe t .\zed-zip\$zip_namex
 $zip_file = Get-Item ".\zed-zip\$zip_name"
 $zipx_file = Get-Item ".\zed-zip\$zip_namex"
 
-Write-Host "tag: $zed_version.$commit.$_version_"
+Write-Host "tag: $zed_version+$commit-$_version_"
 # https://github.com/zed-industries/zed/commit/f6fa6600bc0293707457f27f5849c3ce73bd985f
 Write-Host "commit url: https://github.com/zed-industries/zed/commit/$full_commit"
 Write-Host "打包信息:"
