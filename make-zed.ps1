@@ -6,7 +6,7 @@ Import-Module PSToml
 
 Write-Host "Zed build script"
 Write-Host "by shenjackyuanjie"
-$_version_ = "1.2.0"
+$_version_ = "1.2.1"
 Write-Host "Version: $_version_"
 
 $zed_repo_path = "V:\githubs\zed"
@@ -32,6 +32,7 @@ $cargo_info = Get-Content ".\crates\zed\Cargo.toml" | ConvertFrom-Toml
 $zed_version = $cargo_info.package.version
 Write-Host "Zed 版本: $zed_version"
 Write-Host "最新提交: $commit($full_commit)"
+Write-Host "  - rustc flag: $env:RUSTFLAGS"
 $zip_name = "zed-$zed_version-$commit.zip"
 $zip_namex = "zed-$zed_version-$commit.zipx"
 Write-Host "ZIP 名称：$zip_name"
@@ -76,6 +77,7 @@ Write-Host "tag: $zed_version+$commit-$_version_"
 Write-Host "commit url: https://github.com/zed-industries/zed/commit/$full_commit"
 Write-Host "打包信息:"
 Write-Host "  - 脚本版本号: $_version_"
+Write-Host "  - rustc flag: $env:RUSTFLAGS"
 Write-Host "  - commit id: $commit"
 Write-Host "  - Zed 版本号: $zed_version"
 Write-Host "  - ZIP 文件: $zip_file"
