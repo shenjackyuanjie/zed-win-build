@@ -6,8 +6,10 @@ Import-Module PSToml
 
 Write-Host "Zed build script"
 Write-Host "by shenjackyuanjie"
-$_version_ = "1.3.0"
+$_version_ = "1.3.2"
 # 版本号
+# 1.3.2 修复分支信息导致的文件名错误
+# 1.3.1 添加已有 zed 检测和结束
 # 1.3.0 添加分支信息输出
 # 1.2.1 添加 rustc flag 输出
 Write-Host "Version: $_version_"
@@ -38,8 +40,10 @@ Write-Host "Zed 版本: $zed_version"
 Write-Host "最新提交: $commit($full_commit)"
 Write-Host "分支: $branch"
 Write-Host "rustc flag: $env:RUSTFLAGS"
-$zip_name = "zed-$zed_version-$branch-$commit.zip"
-$zip_namex = "zed-$zed_version-$branch-$commit.zipx"
+# 如果 branch 名称中有 / 则替换为 _
+$branch_path = $branch -replace "/", "_"
+$zip_name = "zed-$zed_version-$branch_path-$commit.zip"
+$zip_namex = "zed-$zed_version-$branch_path-$commit.zipx"
 Write-Host "ZIP 名称：$zip_name"
 Write-Host "ZIPX 名称：$zip_namex"
 # 上面这堆信息构建完会再输出一遍
@@ -52,6 +56,12 @@ if (-not ($args -contains "-skip")) {
     Write-Host "构建完成, 耗时：$((Get-Date) - $start_time)"
 }
 
+# 先看看有没有 zed.exe 正在运行
+$zed_process = Get-Process -Name zed -ErrorAction SilentlyContinue
+if ($zed_process) {
+    Write-Host "Zed 进程存在，结束进程"
+    Stop-Process $zed_process -Force
+}
 # 把最新构建 copy 到 D:\path-scripts
 Copy-Item -Path ".\target\release\Zed.exe" -Destination "$work_path\Zed.exe" -Force
 
