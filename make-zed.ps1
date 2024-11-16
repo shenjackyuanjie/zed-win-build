@@ -6,7 +6,10 @@ Import-Module PSToml
 
 Write-Host "Zed build script"
 Write-Host "by shenjackyuanjie"
-$_version_ = "1.2.1"
+$_version_ = "1.3.0"
+# 版本号
+# 1.3.0 添加分支信息输出
+# 1.2.1 添加 rustc flag 输出
 Write-Host "Version: $_version_"
 
 $zed_repo_path = "V:\githubs\zed"
@@ -27,14 +30,16 @@ Write-Host "更新 Zed 仓库完成"
 $date = Get-Date -Format "yyyy-MM-dd-HH_mm_ss"
 Write-Host "更新时间: $date"
 $commit = git log -1 --pretty=format:"%h"
+$branch = git branch --show-current
 $full_commit = git log -1 --pretty=format:"%H"
 $cargo_info = Get-Content ".\crates\zed\Cargo.toml" | ConvertFrom-Toml
 $zed_version = $cargo_info.package.version
 Write-Host "Zed 版本: $zed_version"
 Write-Host "最新提交: $commit($full_commit)"
-Write-Host "  - rustc flag: $env:RUSTFLAGS"
-$zip_name = "zed-$zed_version-$commit.zip"
-$zip_namex = "zed-$zed_version-$commit.zipx"
+Write-Host "分支: $branch"
+Write-Host "rustc flag: $env:RUSTFLAGS"
+$zip_name = "zed-$zed_version-$branch-$commit.zip"
+$zip_namex = "zed-$zed_version-$branch-$commit.zipx"
 Write-Host "ZIP 名称：$zip_name"
 Write-Host "ZIPX 名称：$zip_namex"
 # 上面这堆信息构建完会再输出一遍
@@ -43,7 +48,7 @@ Write-Host "ZIPX 名称：$zip_namex"
 $start_time = Get-Date
 if (-not ($args -contains "-skip")) {
     Write-Host "开始构建"
-    cargo build --release
+    cargo build --release --timings
     Write-Host "构建完成, 耗时：$((Get-Date) - $start_time)"
 }
 
@@ -79,6 +84,7 @@ Write-Host "打包信息:"
 Write-Host "  - 脚本版本号: $_version_"
 Write-Host "  - rustc flag: $env:RUSTFLAGS"
 Write-Host "  - commit id: $commit"
+Write-Host "  - 分支: $branch"
 Write-Host "  - Zed 版本号: $zed_version"
 Write-Host "  - ZIP 文件: $zip_file"
 Write-Host "  - ZIPX 文件: $zipx_file"
