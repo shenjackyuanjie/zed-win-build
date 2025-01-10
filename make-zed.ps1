@@ -6,8 +6,9 @@ Import-Module PSToml
 
 Write-Host "Zed build script"
 Write-Host "by shenjackyuanjie"
-$_version_ = "1.3.2"
+$_version_ = "1.3.3"
 # 版本号
+# 1.3.3 现在如果带有 -f, git pull 会直接拉取, 不再判断是否已经是最新的(这样终端就有颜色了)
 # 1.3.2 修复分支信息导致的文件名错误
 # 1.3.1 添加已有 zed 检测和结束
 # 1.3.0 添加分支信息输出
@@ -19,12 +20,17 @@ $work_path = "D:\path-scripts"
 
 Set-Location $zed_repo_path
 Write-Host "更新 Zed 仓库"
-git pull | Tee-Object -Variable git_result
-# 如果命令行参数包含 -f 则继续构建
-if ($git_result -eq "Already up to date." -and -not ($args -contains "-f")) {
-    Write-Host "Zed 仓库已经是最新的了"
-    Set-Location $current_pos
-    return
+if ($args -contains "-f") {
+    # 直接拉取
+    git pull
+}
+else {
+    git pull | Tee-Object -Variable git_result
+    if ($git_result -eq "Already up to date.") {
+        Write-Host "Zed 仓库已经是最新的了"
+        Set-Location $current_pos
+        return
+    }
 }
 Write-Host "更新 Zed 仓库完成"
 
