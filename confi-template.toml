@@ -1,0 +1,7 @@
+[gitea]
+enable = false
+url = "https://gitea.example.com"
+owner = "owner"
+repo = "repo-name"
+# 记得在token前面加一个 `token `
+token = "token your_gitea_token_here"

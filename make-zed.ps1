@@ -6,8 +6,9 @@ Import-Module PSToml
 
 Write-Host "Zed build script"
 Write-Host "by shenjackyuanjie"
-$_version_ = "1.3.3"
+$_version_ = "1.4.0"
 # 版本号
+# 1.4.0 添加 gitea 发布功能
 # 1.3.3 现在如果带有 -f, git pull 会直接拉取, 不再判断是否已经是最新的(这样终端就有颜色了)
 # 1.3.2 修复分支信息导致的文件名错误
 # 1.3.1 添加已有 zed 检测和结束
@@ -86,36 +87,97 @@ if (-not (Test-Path ".\zed-zip")) {
 
 # 忽略输出
 bz.exe c -l:9 -y -fmt:zip -t:14 -cp:65001 .\zed-zip\$zip_name .\Zed.exe
-bz.exe c -l:9 -y -fmt:zipx -t:14 -cp:65001 .\zed-zip\$zip_namex .\Zed.exe
+bz.exe c -l:0 -y -fmt:zipx -t:14 -cp:65001 .\zed-zip\$zip_namex .\Zed.exe
 bz.exe t .\zed-zip\$zip_name
 bz.exe t .\zed-zip\$zip_namex
 
 $zip_file = Get-Item ".\zed-zip\$zip_name"
 $zipx_file = Get-Item ".\zed-zip\$zip_namex"
 
-Write-Host "tag: $zed_version+$commit-$_version_"
-# https://github.com/zed-industries/zed/commit/f6fa6600bc0293707457f27f5849c3ce73bd985f
-Write-Host "commit url: https://github.com/zed-industries/zed/commit/$full_commit"
-Write-Host "打包信息:"
-Write-Host "  - 脚本版本号: $_version_"
-Write-Host "  - rustc flag: $env:RUSTFLAGS"
-Write-Host "  - commit id: $commit"
-Write-Host "  - 分支: $branch"
-Write-Host "  - Zed 版本号: $zed_version"
-Write-Host "  - ZIP 文件: $zip_file"
-Write-Host "  - ZIPX 文件: $zipx_file"
-Write-Host "  - 构建时间：$date"
-Write-Host "  - 构建耗时：$((Get-Date) - $start_time)"
+$release_body = @"
+tag: $zed_version+$commit-$_version_
+commit url: https://github.com/zed-industries/zed/commit/$full_commit
+打包信息:
+  - 脚本版本号: $_version_
+  - rustc flag: $env:RUSTFLAGS
+  - commit id: $commit
+  - 分支: $branch
+  - Zed 版本号: $zed_version
+  - ZIP 文件: $zip_file
+  - ZIPX 文件: $zipx_file
+  - 构建时间：$date
+  - 构建耗时：$((Get-Date) - $start_time)
 
-Write-Host "``````"
+"@
+
 # 计算 hash
-Write-Host "blake3sum:"
-b3sum.exe .\zed-zip\$zip_name
-b3sum.exe .\zed-zip\$zip_namex
+$release_body += @"
+``````
+blake3sum:
+$(& b3sum.exe .\zed-zip\$zip_name)
+$(& b3sum.exe .\zed-zip\$zip_namex)
 
-($zip_file, $zipx_file) | Get-FileHash -Algorithm SHA256
-Write-Host "``````"
-Write-Host "ZIP 压缩完成"
+$((($zip_file, $zipx_file) | Get-FileHash -Algorithm SHA256 | Format-Table -AutoSize | Out-String))
+``````
+
+"@
+
+Write-Host "压缩完成"
+
+Write-Host $release_body
+
+Write-Host "开始上传"
+
+# 在 gitea 上创建一个 release
+# 检测 config.toml 是否存在
+if (Test-Path "$PSScriptRoot\config.toml") {
+    Write-Host "检测到 config.toml 文件, 尝试进行上传操作"
+    $config_file = Get-Content "$PSScriptRoot\config.toml" | ConvertFrom-Toml
+    # 检测 gitea
+    if ($config_file.gitea.enable) {
+        Write-Host "开始上传到 gitea"
+        $gitea_url = $config_file.gitea.url
+        $gitea_repo = $config_file.gitea.repo
+        $gitea_owner = $config_file.gitea.owner
+        $create_release_uri = "$gitea_url/api/v1/repos/$gitea_owner/$gitea_repo/releases"
+        $headers = @{
+            Authorization = $config_file.gitea.token
+            accept = "application/json"
+            "Content-Type" = "application/json"
+        }
+        $data = @{
+            body = $release_body
+            draft = $true
+            prerelease = $false
+            tag_name = "$zed_version+$commit-$_version_"
+            target_commitish = $full_commit
+        }
+        Write-Host "开始创建 Gitea Release"
+        $jsonBody = $data | ConvertTo-Json -Depth 5
+        try {
+            Write-Host "正在向 Gitea 提交 release 请求..."
+            $response = Invoke-RestMethod -Uri $create_release_uri -Method Post -Headers $headers -Body $jsonBody
+
+            $release_id = $response.id
+            # https://git.shenjack.top:5100/api/v1/repos/shenjack/zed-win-build/releases/19020/assets
+            $assets_url = "$($config_file.gitea.url)/api/v1/repos/$($config_file.gitea.user)/$($config_file.gitea.repo)/releases/$($release_id)/assets"
+            Write-Host "✅ Gitea Release 创建成功！release id: $($response.id), 上传地址: $assets_url"
+
+            $uploadHeaders = @{
+                Authorization = $config_file.gitea.token
+                accept = "application/json"
+            }
+            if (-not $assets_url -or -not [uri]::IsWellFormedUriString($assets_url, 'RelativeOrAbsolute')) {
+                Write-Error "❌ upload_url 不合法或为空: $assets_url"
+                return
+            }
+        } catch {
+            Write-Error "❌ 创建 Gitea Release 失败: $_"
+        }
+    }
+} else {
+    Write-Host "未检测到 config.toml 文件, 不进行上传"
+}
 
 # 返回原位置
 Set-Location $current_pos
