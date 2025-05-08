@@ -6,8 +6,9 @@ Import-Module PSToml
 
 Write-Host "Zed build script"
 Write-Host "by shenjackyuanjie"
-$_version_ = "1.3.3"
+$_version_ = "1.3.4"
 # 版本号
+# 1.3.4 现在在结束 zed 进程之后会等 1s 让他完全结束
 # 1.3.3 现在如果带有 -f, git pull 会直接拉取, 不再判断是否已经是最新的(这样终端就有颜色了)
 # 1.3.2 修复分支信息导致的文件名错误
 # 1.3.1 添加已有 zed 检测和结束
@@ -65,8 +66,9 @@ if (-not ($args -contains "-skip")) {
 # 先看看有没有 zed.exe 正在运行
 $zed_process = Get-Process -Name zed -ErrorAction SilentlyContinue
 if ($zed_process) {
-    Write-Host "Zed 进程存在，结束进程"
+    Write-Host "Zed 进程存在，结束进程(并等待1s)"
     Stop-Process $zed_process -Force
+    Start-Sleep -Seconds 1
 }
 # 把最新构建 copy 到 D:\path-scripts
 Copy-Item -Path ".\target\release\Zed.exe" -Destination "$work_path\Zed.exe" -Force
